@@ -642,11 +642,6 @@ var game = {
         inputValue.substr(0, caretPosition).split('\n').length - 1;
       const currentLine = lines[currentLineIndex];
 
-      // if (!currentLine.trim().endsWith(';')) {
-      //   autocompleteContainer.style.display = 'none';
-      //   return;
-      // }
-
       const flexPropsAutocomplete = getFlexPropsAutocomplete(currentLine);
 
       if (flexPropsAutocomplete.length > 0 && inputValue.length > 0) {
@@ -659,6 +654,7 @@ var game = {
         autocompleteContainer.innerHTML = autocompleteHTML;
 
         autocompleteContainer.style.display = 'block';
+        autocompleteContainer.style.top = '95px';
         autocompleteContainer.classList.add('tooltip');
       } else {
         autocompleteContainer.style.display = 'none';
