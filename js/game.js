@@ -637,39 +637,54 @@ var game = {
       const inputValue = flexInput.value.trim();
       const caretPosition = getCaretPosition(flexInput);
 
-      const prefix = inputValue.substring(0, caretPosition);
-      const flexPropsAutocomplete = getFlexPropsAutocomplete(prefix);
+      const lines = inputValue.split('\n');
+      const currentLineIndex =
+        inputValue.substr(0, caretPosition).split('\n').length - 1;
+      const currentLine = lines[currentLineIndex];
 
-      if (flexPropsAutocomplete.length > 0) {
+      // if (!currentLine.trim().endsWith(';')) {
+      //   autocompleteContainer.style.display = 'none';
+      //   return;
+      // }
+
+      const flexPropsAutocomplete = getFlexPropsAutocomplete(currentLine);
+
+      if (flexPropsAutocomplete.length > 0 && inputValue.length > 0) {
         const autocompleteHTML = flexPropsAutocomplete
-          .map((property) => `<div>${property}</div>`)
+          .map(
+            (property) =>
+              `<div class='autocomplete-property code'>${property}</div>`
+          )
           .join('');
         autocompleteContainer.innerHTML = autocompleteHTML;
 
-        const inputRect = flexInput.getBoundingClientRect();
-        autocompleteContainer.style.top =
-          inputRect.bottom + window.scrollY + 'px';
-        autocompleteContainer.style.left =
-          inputRect.left + window.scrollX + 'px';
-
         autocompleteContainer.style.display = 'block';
+        autocompleteContainer.classList.add('tooltip');
       } else {
         autocompleteContainer.style.display = 'none';
       }
     }
 
     autocompleteContainer.addEventListener('click', applyAutocomplete);
-
     function applyAutocomplete(event) {
       if (event.target.tagName === 'DIV') {
         const selectedProperty = event.target.textContent;
         const currentValue = flexInput.value.trim();
         const caretPosition = getCaretPosition(flexInput);
+
+        // Split the current value into prefix and suffix
         const prefix = currentValue.substring(0, caretPosition);
         const suffix = currentValue.substring(caretPosition);
-        const newValue = selectedProperty;
 
-        flexInput.value = newValue + ': ';
+        // Extract the existing property name (if any) from the prefix
+        const existingProperty = prefix.match(/([a-zA-Z-]+)$/);
+        const newPrefix = existingProperty
+          ? prefix.replace(existingProperty[1], selectedProperty)
+          : selectedProperty;
+
+        const newValue = newPrefix + suffix;
+
+        flexInput.value = newValue;
         autocompleteContainer.style.display = 'none';
         flexInput.focus();
       }
