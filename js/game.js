@@ -29,6 +29,7 @@ const validFlexValues = [
   'space-between',
   'space-around',
   'space-evenly',
+  'center',
   'auto',
 ];
 
@@ -635,7 +636,9 @@ var game = {
 
     function getAutoCompleteTemplate(properties) {
       return properties
-        .map((value) => `<div class='autocomplete-value code'>${value}</div>`)
+        .map(
+          (value) => `<div class='autocomplete-property code'>${value}</div>`
+        )
         .join('');
     }
 
@@ -657,8 +660,7 @@ var game = {
             caretPosition
           );
 
-          const [, existingPropertyName, _existingPropertyValue] =
-            inputValue.match(/([a-zA-Z-]+):\s*([^;]*)$/) ?? [];
+          // for the values, nothing should show if the user hasn't started typing anything in the value part
 
           autocompleteHTML = getAutoCompleteTemplate(flexValuesAutocomplete);
         } else {
@@ -726,9 +728,10 @@ var game = {
       }
       // Caret is after the ":"; suggest values using the text after the ":"
       const flexValuePrefix = prefix.split(':')[1].trim();
-      return validFlexValues.filter((value) =>
-        value.startsWith(flexValuePrefix)
-      );
+
+      return flexValuePrefix.length > 0
+        ? validFlexValues.filter((value) => value.startsWith(flexValuePrefix))
+        : [];
     }
   },
 };
