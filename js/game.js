@@ -633,6 +633,12 @@ var game = {
 
     flexInput.addEventListener('input', showAutocomplete);
 
+    function getAutoCompleteTemplate(properties) {
+      return properties
+        .map((value) => `<div class='autocomplete-value code'>${value}</div>`)
+        .join('');
+    }
+
     function showAutocomplete() {
       const inputValue = flexInput.value.trim();
       const caretPosition = getCaretPosition(flexInput);
@@ -642,17 +648,27 @@ var game = {
         inputValue.substr(0, caretPosition).split('\n').length - 1;
       const currentLine = lines[currentLineIndex];
 
-      const flexPropsAutocomplete = getFlexPropsAutocomplete(currentLine);
+      let autocompleteHTML = '';
 
-      if (flexPropsAutocomplete.length > 0 && inputValue.length > 0) {
-        const autocompleteHTML = flexPropsAutocomplete
-          .map(
-            (property) =>
-              `<div class='autocomplete-property code'>${property}</div>`
-          )
-          .join('');
+      if (inputValue.length > 0) {
+        if (caretPosition > currentLine.indexOf(':')) {
+          const flexValuesAutocomplete = getFlexPropValues(
+            currentLine,
+            caretPosition
+          );
+
+          const [, existingPropertyName, _existingPropertyValue] =
+            inputValue.match(/([a-zA-Z-]+):\s*([^;]*)$/) ?? [];
+
+          autocompleteHTML = getAutoCompleteTemplate(flexValuesAutocomplete);
+        } else {
+          const flexPropsAutocomplete = getFlexPropValues(currentLine);
+          autocompleteHTML = getAutoCompleteTemplate(flexPropsAutocomplete);
+        }
+      }
+
+      if (autocompleteHTML.length > 0 && inputValue.length > 0) {
         autocompleteContainer.innerHTML = autocompleteHTML;
-
         autocompleteContainer.style.display = 'block';
         autocompleteContainer.style.top = '95px';
         autocompleteContainer.classList.add('tooltip');
@@ -662,9 +678,10 @@ var game = {
     }
 
     autocompleteContainer.addEventListener('click', applyAutocomplete);
+
     function applyAutocomplete(event) {
       if (event.target.tagName === 'DIV') {
-        const selectedProperty = event.target.textContent;
+        const selectedValue = event.target.textContent;
         const currentValue = flexInput.value.trim();
         const caretPosition = getCaretPosition(flexInput);
 
@@ -672,13 +689,14 @@ var game = {
         const prefix = currentValue.substring(0, caretPosition);
         const suffix = currentValue.substring(caretPosition);
 
-        // Extract the existing property name (if any) from the prefix
-        const existingProperty = prefix.match(/([a-zA-Z-]+)$/);
-        const newPrefix = existingProperty
-          ? prefix.replace(existingProperty[1], selectedProperty)
-          : selectedProperty;
+        // Extract the existing property name and value
+        const [, existingPropertyName, _existingPropertyValue] =
+          prefix.match(/([a-zA-Z-]+):\s*([^;]*)$/) ?? [];
 
-        const newValue = newPrefix + suffix;
+        // Create the new value by replacing only the property value
+        const newValue = existingPropertyName
+          ? `${existingPropertyName}: ${selectedValue}${suffix}`
+          : `${selectedValue}${suffix}`;
 
         flexInput.value = newValue;
         autocompleteContainer.style.display = 'none';
@@ -699,11 +717,18 @@ var game = {
       return element.selectionStart;
     }
 
-    function getFlexPropsAutocomplete(prefix) {
-      const matchingProps = validFlexProperties.filter((property) =>
-        property.startsWith(prefix)
+    function getFlexPropValues(prefix) {
+      if (prefix.indexOf(':') === -1) {
+        // Caret is before the ":"; suggest properties
+        return validFlexProperties.filter((property) =>
+          property.startsWith(prefix)
+        );
+      }
+      // Caret is after the ":"; suggest values using the text after the ":"
+      const flexValuePrefix = prefix.split(':')[1].trim();
+      return validFlexValues.filter((value) =>
+        value.startsWith(flexValuePrefix)
       );
-      return matchingProps;
     }
   },
 };
