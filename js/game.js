@@ -671,8 +671,9 @@ var game = {
 
       if (autocompleteHTML.length > 0 && inputValue.length > 0) {
         autocompleteContainer.innerHTML = autocompleteHTML;
+        // for each line + 1, we will add 10px to the top property
         autocompleteContainer.style.display = 'block';
-        autocompleteContainer.style.top = '95px';
+        autocompleteContainer.style.top = `${95 + currentLineIndex * 20}px`;
         autocompleteContainer.classList.add('tooltip');
       } else {
         autocompleteContainer.style.display = 'none';
@@ -684,27 +685,55 @@ var game = {
     function applyAutocomplete(event) {
       if (event.target.tagName === 'DIV') {
         const selectedValue = event.target.textContent;
-        const currentValue = flexInput.value.trim();
-        const caretPosition = getCaretPosition(flexInput);
+        const currentValue = flexInput.value;
+        let caretPosition = getCaretPosition(flexInput);
 
-        // Split the current value into prefix and suffix
-        const prefix = currentValue.substring(0, caretPosition);
-        const suffix = currentValue.substring(caretPosition);
+        // Split the current value into lines
+        const lines = currentValue.split('\n');
 
-        // Extract the existing property name and value
+        // Find the current line index and the position within that line
+        let currentLineIndex = 0;
+        let positionInLine = 0;
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const lineLength = line.length + 1; // Add 1 for the newline character
+          if (caretPosition <= lineLength) {
+            currentLineIndex = i;
+            positionInLine = caretPosition;
+            break;
+          }
+          caretPosition -= lineLength;
+        }
+
+        // Extract the existing property name and value from the current line
         const [, existingPropertyName, _existingPropertyValue] =
-          prefix.match(/([a-zA-Z-]+):\s*([^;]*)$/) ?? [];
+          lines[currentLineIndex]?.match(/([a-zA-Z-]+):\s*([^;]*)$/) || [];
 
-        // Create the new value by replacing only the property value
-        const newValue = existingPropertyName
-          ? `${existingPropertyName}: ${selectedValue}${suffix}`
-          : `${selectedValue}${suffix}`;
+        // Update only the value of the existing property in the current line
+        if (existingPropertyName !== undefined) {
+          lines[
+            currentLineIndex
+          ] = `${existingPropertyName}: ${selectedValue};`;
+        } else {
+          // If no existing property, add the selected value to the new line
+          lines[currentLineIndex] = selectedValue;
+        }
 
+        // Join the lines back together to form the new value
+        const newValue = lines.join('\n');
+
+        // Set the new value and update the input
         flexInput.value = newValue;
         autocompleteContainer.style.display = 'none';
         flexInput.focus();
       }
     }
+
+    function setCaretPosition(el, position) {
+      el.setSelectionRange(position, position);
+    }
+
+    // ... (rest of your code)
 
     document.addEventListener('click', function (event) {
       if (
